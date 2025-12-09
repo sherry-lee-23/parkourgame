@@ -9,7 +9,7 @@ from obstacle import ObstacleManager
 # 初始化pygame
 pygame.init()
 
-
+#增添一行来进行测试
 class Game:
     def __init__(self):
         # 创建窗口
