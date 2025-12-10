@@ -5,7 +5,7 @@ import os
 
 
 class Obstacle:
-    def __init__(self, x, y, width=30, height=30, speed=2, image_path='image/障碍物1.jpg'):
+    def __init__(self, x, y, width=30, height=30, speed=8, image_path='image/障碍物1.jpg'):
         self.rect = pygame.Rect(x, y, width, height)
         self.speed = speed
         self.color = (255, 0, 0)
@@ -60,12 +60,12 @@ class ObstacleManager:
     def spawn_obstacle(self):
         """生成一个新的障碍物"""
         # 随机高度和宽度
-        obstacle_height = random.randint(25, 40)
-        obstacle_width = random.randint(25, 40)
+        obstacle_height = random.randint(25, 60)
+        obstacle_width = random.randint(25, 40)#更改了高度和宽度
         obstacle_y = 400 - obstacle_height  # 底部在地面上，地面为400
 
         # 障碍物速度
-        obstacle_speed = 2
+        obstacle_speed = 8
         # 检查与上一个障碍物的间隔
         if self.obstacles:
             last_obstacle = self.obstacles[-1]
