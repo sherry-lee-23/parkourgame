@@ -193,6 +193,10 @@ class Game:
                              player_id=self.selected_character,
                              image_path=image_path)
 
+        # ============ 新增：设置玩家的地面高度 ============
+        if self.player:
+            self.player.set_ground_y(self.ground_y)
+
         # 重置游戏状态
         self.score = 0
 
@@ -421,3 +425,4 @@ if __name__ == "__main__":
     game = Game()
 
     game.run()
+
