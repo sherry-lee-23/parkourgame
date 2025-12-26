@@ -107,6 +107,10 @@ class ObstacleManager:
                 return True
         return False
 
+    def get_all_obstacle_rects(self):
+        """获取所有活动障碍物的矩形"""
+        return [obstacle.rect for obstacle in self.obstacles]
+
     def clear(self):
         """清除所有障碍物"""
         self.obstacles.clear()

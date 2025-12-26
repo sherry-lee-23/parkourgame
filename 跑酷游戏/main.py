@@ -5,6 +5,7 @@ import time
 import os
 from player import Player
 from obstacle import ObstacleManager
+from coin import CoinManager
 
 # 初始化pygame
 pygame.init()
@@ -42,9 +43,20 @@ class Game:
         # 创建障碍物管理器
         self.obstacle_manager = ObstacleManager()
 
+        # 创建金币管理器（新增）
+        self.coin_manager = CoinManager(self.obstacle_manager)
+
         # 分数
         self.score = 0
         self.high_score = 0
+        self.coins = 0  # 新增：收集的金币数量
+        self.max_coins = 0  # 新增：最高金币记录
+
+        # 金币收集效果（新增）
+        self.coin_effect_timer = 0
+        self.coin_effect_text = ""
+        self.coin_effect_pos = (0, 0)
+        self.show_coin_effect = False
 
         # 加载背景图片
         self.background = self.load_background()
@@ -60,6 +72,7 @@ class Game:
         self.font = pygame.font.Font('image/STKAITI.TTF', 48)
         self.medium_font = pygame.font.Font('image/STKAITI.TTF', 36)
         self.small_font = pygame.font.Font('image/STKAITI.TTF', 24)
+        self.ui_font = pygame.font.Font('image/STKAITI.TTF', 28)
 
         # 鼠标状态
         self.mouse_pos = (0, 0)
@@ -146,6 +159,9 @@ class Game:
         """更新游戏状态"""
         if self.state == "playing":
 
+            # 获取背景滚动速度
+            scroll_speed = 8  # 与背景滚动速度相同
+
             #更新背景滚动
             self.update_background()
 
@@ -156,15 +172,41 @@ class Game:
             # 更新障碍物
             self.obstacle_manager.update()
 
+            #更新金币
+            self.coin_manager.update(scroll_speed)
+
+            # 检测金币收集（新增）
+            if self.player:
+                collected = self.coin_manager.check_collections(self.player.rect)
+                if collected > 0:
+                    # 每次收集的金币累加到总金币数
+                    self.coins += collected
+                    self.score += collected * 10  # 每个金币加10分
+
+                    # 显示金币收集效果
+                    self.show_coin_effect = True
+                    self.coin_effect_timer = 30  # 显示30帧
+                    self.coin_effect_text = f"+{collected}"  # 改为显示"+1"
+                    self.coin_effect_pos = (self.player.rect.x, self.player.rect.y - 50)
+
             # 增加分数
             self.score += 0.1
 
             # 检测碰撞
             if self.player and self.obstacle_manager.check_collisions(self.player.rect):
-                self.state = "game_over"#碰撞即跳到游戏结束页面
+                self.state = "game_over"  # 碰撞即跳到游戏结束页面
                 self.game_over_time = time.time()
-                if self.score > self.high_score:#更新最高分
+                if self.score > self.high_score:  # 更新最高分
                     self.high_score = int(self.score)
+                if self.coins > self.max_coins:  # 新增：更新最多金币记录
+                    self.max_coins = self.coins
+
+            # 更新金币收集效果（新增）
+            if self.show_coin_effect:
+                self.coin_effect_timer -= 1
+                if self.coin_effect_timer <= 0:
+                    self.show_coin_effect = False
+
 
         elif self.state == "game_over":
             # 5秒后自动返回菜单
@@ -203,9 +245,10 @@ class Game:
                              player_id=self.selected_character,
                              image_folder=animation_folder)
 
-        # 重置游戏状态
+        # 重置游戏状态（金币不清零）
         self.score = 0
         self.obstacle_manager.clear()
+        self.coin_manager.clear()  # 新增：清空金币
         self.state = "playing"
 
     def reset_game(self):
@@ -216,6 +259,7 @@ class Game:
 
         # 清空障碍物
         self.obstacle_manager.clear()
+        self.coin_manager.clear()  # 新增：清空金币
 
         # 重置分数
         self.score = 0
@@ -241,6 +285,11 @@ class Game:
         title_text = self.font.render("选择你的角色", True, (255, 255, 200))
         title_rect = title_text.get_rect(center=(400, 150))
         self.screen.blit(title_text, title_rect)
+
+        # 绘制总金币数（新增）
+        coins_text = self.medium_font.render(f"总金币: {self.coins}", True, (255, 255, 100))
+        coins_rect = coins_text.get_rect(center=(400, 180))
+        self.screen.blit(coins_text, coins_rect)
 
         # 绘制角色1选择框
         char1_rect = pygame.Rect(250, 250, 100, 150)
@@ -305,6 +354,9 @@ class Game:
             control_text = self.small_font.render(text, True, (200, 200, 200))
             self.screen.blit(control_text, (400 - control_text.get_width() // 2, 530 + i * 25))
 
+        # 重置金币效果（新增）
+        self.show_coin_effect = False
+
     def draw_game(self):
         """绘制游戏画面"""
         # 绘制背景
@@ -313,12 +365,39 @@ class Game:
         # 绘制障碍物
         self.obstacle_manager.draw(self.screen)
 
+        # 绘制金币（新增）
+        self.coin_manager.draw(self.screen)
+
         # 绘制玩家
         if self.player:
             self.player.draw(self.screen)
 
+        # 绘制金币收集效果（新增）
+        if self.show_coin_effect:
+            self.draw_coin_effect()
+
         # 绘制UI信息
         self.draw_ui()
+
+    def draw_coin_effect(self):  # 新增方法
+        """绘制金币收集效果"""
+        # 创建效果文本
+        effect_font = pygame.font.Font('image/STKAITI.TTF', 32)
+        effect_text = effect_font.render(self.coin_effect_text, True, (255, 255, 100))
+
+        # 添加透明度效果
+        alpha = min(255, self.coin_effect_timer * 8)
+        temp_surface = effect_text.copy()
+        temp_surface.set_alpha(alpha)
+
+        # 绘制效果文本
+        effect_rect = effect_text.get_rect(center=self.coin_effect_pos)
+        self.screen.blit(temp_surface, effect_rect)
+
+        # 更新位置（向上移动）
+        self.coin_effect_pos = (self.coin_effect_pos[0], self.coin_effect_pos[1] - 1)
+
+
 
     def draw_ui(self):
         """绘制游戏UI"""
@@ -332,6 +411,10 @@ class Game:
         # 绘制最高分
         high_score_text = self.medium_font.render(f"最高分: {self.high_score}", True, (0, 0, 0))
         self.screen.blit(high_score_text, (10, 50))
+
+        # 绘制总金币（新增）
+        coins_text = self.ui_font.render(f"总金币: {self.coins}", True, (255, 255, 100))
+        self.screen.blit(coins_text, (250, 20))
 
         # 绘制当前玩家信息
         player_name = self.character_abilities[self.selected_character]["name"]
@@ -362,18 +445,20 @@ class Game:
         time_left = max(0, 5 - (time.time() - self.game_over_time))
 
         # 游戏结束文字
-        game_over_text = self.font.render("游戏结束!", True, (255, 0, 0))
+        game_over_text = self.font.render("游戏结束!", True, (255, 50, 50))
         score_text = self.font.render(f"最终分数: {int(self.score)}", True, (255, 255, 255))
-        high_score_text = self.font.render(f"最高分: {self.high_score}", True, (255, 255, 0))
-        restart_text = self.medium_font.render(f"自动返回菜单: {int(time_left)}秒", True, (0, 255, 0))
+        high_score_text = self.font.render(f"最高分: {self.high_score}", True, (255, 255, 100))
+        coins_text = self.font.render(f"总金币: {self.coins}", True, (255, 255, 100))  # 新增
+        restart_text = self.medium_font.render(f"自动返回菜单: {int(time_left)}秒", True, (100, 255, 100))
         manual_text = self.small_font.render("按 R 键立即重玩，ESC 返回菜单", True, (200, 255, 200))
 
         # 居中显示
-        self.screen.blit(game_over_text, (400 - game_over_text.get_width() // 2, 200))
-        self.screen.blit(score_text, (400 - score_text.get_width() // 2, 260))
-        self.screen.blit(high_score_text, (400 - high_score_text.get_width() // 2, 310))
-        self.screen.blit(restart_text, (400 - restart_text.get_width() // 2, 370))
-        self.screen.blit(manual_text, (400 - manual_text.get_width() // 2, 420))
+        self.screen.blit(game_over_text, (400 - game_over_text.get_width() // 2, 180))
+        self.screen.blit(score_text, (400 - score_text.get_width() // 2, 240))
+        self.screen.blit(high_score_text, (400 - high_score_text.get_width() // 2, 290))
+        self.screen.blit(coins_text, (400 - coins_text.get_width() // 2, 340))  # 新增
+        self.screen.blit(restart_text, (400 - restart_text.get_width() // 2, 400))
+        self.screen.blit(manual_text, (400 - manual_text.get_width() // 2, 450))
 
     def run(self):
         """运行游戏主循环"""
