@@ -4,6 +4,8 @@ import random
 import os
 import math
 
+COIN_FONT = None
+
 
 class Coin:
     def __init__(self, x, y, size=25, speed=2, image_path='image/coin.png', is_ground_coin=False):
@@ -53,25 +55,24 @@ class Coin:
             self.create_simple_coin()
 
     def create_simple_coin(self):
-        """创建简单的金币图片"""
+        global COIN_FONT
+
+        if COIN_FONT is None:
+            COIN_FONT = pygame.font.Font(None, self.size // 2)
+
         self.image = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
 
-        # 绘制金币形状
         center = self.size // 2
         radius = self.size // 2 - 2
 
-        # 金币颜色渐变
         for i in range(radius, 0, -1):
             color_value = 200 + (radius - i) * 55 // radius
             color = (color_value, color_value, 50)
             pygame.draw.circle(self.image, color, (center, center), i)
 
-        # 金币边框
         pygame.draw.circle(self.image, (220, 220, 0), (center, center), radius, 2)
 
-        # 金币中间的符号
-        font = pygame.font.Font(None, self.size // 2)
-        coin_text = font.render("$", True, (255, 255, 200))
+        coin_text = COIN_FONT.render("$", True, (255, 255, 200))
         text_rect = coin_text.get_rect(center=(center, center))
         self.image.blit(coin_text, text_rect)
 
@@ -244,6 +245,9 @@ class CoinManager:
         return False
 
     def spawn_coin(self):
+        if self.waiting_after_obstacle and self.spawn_timer < 60:
+            return None
+
         spawn_x = 800
         OBSTACLE_COIN_GAP = 140 # 可以比之前小一点
 
@@ -255,7 +259,7 @@ class CoinManager:
                 # 已经空出距离，可以生成地面金币串了
                 self.waiting_after_obstacle = False
 
-        spawn_ground_group = random.random() < 0.8
+        spawn_ground_group = random.random() < 0.7
 
         if spawn_ground_group and self.has_upcoming_obstacle(spawn_x):
             spawn_ground_group = False
