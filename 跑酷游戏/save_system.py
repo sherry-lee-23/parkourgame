@@ -40,17 +40,38 @@ class SaveSystem:
             print(f"保存存档失败: {e}")
             return False
 
-    def create_new_save(self, player_name):
-        """创建新存档"""
-        if not player_name or player_name.strip() == "":
-            return False
+    def generate_save_name(self):
+        """生成自动存档名称"""
+        existing_saves = self.saves.get("saves", [])
+        if not existing_saves:
+            return "存档1"
 
-        player_name = player_name.strip()
+        # 提取所有存档的序号
+        save_numbers = []
+        for save in existing_saves:
+            name = save["player_name"]
+            if name.startswith("存档"):
+                try:
+                    # 提取"存档"后面的数字
+                    num = int(name[2:])
+                    save_numbers.append(num)
+                except ValueError:
+                    continue
 
-        # 检查是否已存在同名存档
-        for save in self.saves.get("saves", []):
-            if save["player_name"].lower() == player_name.lower():
-                return False
+        # 找到最小的可用序号
+        if not save_numbers:
+            return "存档1"
+
+        # 从1开始找到第一个可用的序号
+        for i in range(1, max(save_numbers) + 2):
+            if i not in save_numbers:
+                return f"存档{i}"
+
+        return f"存档{max(save_numbers) + 1}"
+
+    def create_new_save(self):
+        """创建新存档（自动生成名称）"""
+        player_name = self.generate_save_name()
 
         # 创建新存档
         new_save = {
@@ -78,7 +99,11 @@ class SaveSystem:
         self.current_player_name = player_name
         self.current_save = new_save
 
-        return self.save_all_saves()
+        if self.save_all_saves():
+            print(f"已创建新存档: {player_name}")
+            return True
+        else:
+            return False
 
     def load_save(self, player_name):
         """加载指定玩家的存档"""
@@ -194,6 +219,7 @@ class SaveSystem:
         saves = self.saves.get("saves", [])
         for i, save in enumerate(saves):
             if save["player_name"].lower() == player_name.lower():
+                # 如果要删除的是当前存档，清空当前存档
                 if self.current_player_name and self.current_player_name.lower() == player_name.lower():
                     self.current_player_name = None
                     self.current_save = None

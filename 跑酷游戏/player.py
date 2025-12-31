@@ -53,11 +53,6 @@ class Player:
         # 按文件名排序（确保帧顺序正确）
         image_files.sort()
 
-        if not image_files:
-            print(f"警告：在文件夹 {folder_path} 中未找到图片文件")
-            self.animation_frames = None
-            return
-
         # 加载所有图片
         for img_path in image_files:
             img = pygame.image.load(img_path).convert_alpha()
@@ -129,10 +124,3 @@ class Player:
         # 绘制当前动画帧
         current_image = self.animation_frames[self.current_frame]
         screen.blit(current_image, self.rect)
-
-
-        # 显示跳跃次数
-        font = pygame.font.Font('image/STKAITI.TTF', 24)
-        jump_text = f"跳: {self.jump_count}/{self.max_jump_count}"
-        jump_surface = font.render(jump_text, True, (255, 255, 255))
-        screen.blit(jump_surface, (self.rect.x, self.rect.y - 25))

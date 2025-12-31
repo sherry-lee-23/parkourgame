@@ -22,7 +22,7 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # 2. 游戏状态
-        self.state = "title"  # 可能的状态: title, menu, shop, playing, game_over, load_save, create_save, saves_list, leaderboard
+        self.state = "title"  # 可能的状态: title, menu, shop, playing, game_over, load_save, saves_list
         self.running = True
 
         # 3. 游戏核心对象
@@ -73,35 +73,28 @@ class Game:
         self.medium_font = pygame.font.Font('image/STKAITI.TTF', 36)
         self.small_font = pygame.font.Font('image/STKAITI.TTF', 24)
         self.ui_font = pygame.font.Font('image/STKAITI.TTF', 28)
-        self.input_font = pygame.font.Font('image/STKAITI.TTF', 36)
 
-        # 10. 输入系统
-        self.input_text = ""
-        self.input_active = False
-        self.input_rect = pygame.Rect(300, 350, 200, 40)
-        self.input_prompt = "请输入玩家名字:"
-        self.input_surface = self.input_font.render("", True, (255, 255, 255))
-
-        # 11. 存档系统相关
+        # 10. 存档系统相关
         self.save_list_offset = 0
         self.selected_save_index = -1
+        self.delete_confirm = None
 
-        # 12. 金币效果系统
+        # 11. 金币效果系统
         self.coin_effect_timer = 0
         self.coin_effect_text = ""
         self.coin_effect_pos = (0, 0)
         self.show_coin_effect = False
 
-        # 13. 鼠标系统
+        # 12. 鼠标系统
         self.mouse_pos = (0, 0)
 
-        # 14. 帧率控制
+        # 13. 帧率控制
         self.target_fps = 60
         self.last_frame_time = 0
         self.frame_count = 0
         self.frame_timer = 0
 
-        # 15. 加载商店图片
+        # 14. 加载商店图片
         self.shop_images = self.load_shop_images()
 
     # ==================== 资源加载方法 ====================
@@ -144,7 +137,6 @@ class Game:
             shop_images[item_type] = image
             print(f"成功加载商店图片: {path}")
 
-
         return shop_images
 
     # ==================== 游戏核心控制方法 ====================
@@ -161,10 +153,7 @@ class Game:
             self.update()
             self.draw()
 
-            if self.state == "create_save" and self.input_active:
-                self.clock.tick(30)  # 输入状态下降低帧率
-            else:
-                self.clock.tick(self.target_fps)  # 正常帧率
+            self.clock.tick(self.target_fps)
 
         # 退出游戏
         pygame.quit()
@@ -240,8 +229,6 @@ class Game:
         """处理键盘按下事件"""
         if self.state == "playing":
             self.handle_playing_keydown(event)
-        elif self.state == "create_save" and self.input_active:
-            self.handle_create_save_keydown(event)
 
     def handle_playing_keydown(self, event):
         """游戏中按键处理"""
@@ -249,35 +236,14 @@ class Game:
             if self.player:
                 self.player.jump()
 
-    def handle_create_save_keydown(self, event):
-        """创建存档按键处理"""
-        if event.key == pygame.K_RETURN:
-            if self.input_text.strip():
-                if self.save_system.create_new_save(self.input_text):
-                    self.update_game_data_from_save()
-                    self.state = "menu"
-            self.input_text = ""
-        elif event.key == pygame.K_BACKSPACE:
-            self.input_text = self.input_text[:-1]
-        else:
-            if len(self.input_text) < 20 and event.unicode.isprintable():
-                self.input_text += event.unicode
-
-        display = self.input_text + ("|" if self.input_active else "")
-        self.input_surface = self.input_font.render(display, True, (255, 255, 255))
-
     def handle_mouse_click(self):
         """处理鼠标点击"""
         if self.state == "title":
             self.handle_title_mouse_click()
-        elif self.state == "create_save":
-            self.handle_create_save_mouse_click()
         elif self.state == "load_save":
             self.handle_load_save_mouse_click()
         elif self.state == "saves_list":
             self.handle_saves_list_mouse_click()
-        elif self.state == "leaderboard":
-            self.handle_leaderboard_mouse_click()
         elif self.state == "menu":
             self.handle_menu_mouse_click()
         elif self.state == "shop":
@@ -289,21 +255,15 @@ class Game:
         if 300 <= self.mouse_pos[0] <= 500 and 250 <= self.mouse_pos[1] <= 310:
             self.state = "load_save"
         elif 300 <= self.mouse_pos[0] <= 500 and 330 <= self.mouse_pos[1] <= 390:
-            self.state = "create_save"
-            self.input_active = True
-            self.input_text = ""
+            # 自动创建新存档
+            if self.save_system.create_new_save():
+                self.update_game_data_from_save()
+                self.state = "menu"
+                print("新存档创建成功")
         elif 300 <= self.mouse_pos[0] <= 500 and 410 <= self.mouse_pos[1] <= 470:
             self.state = "saves_list"
         elif 300 <= self.mouse_pos[0] <= 500 and 490 <= self.mouse_pos[1] <= 550:
             self.running = False
-
-    def handle_create_save_mouse_click(self):
-        """创建存档屏幕鼠标点击"""
-        # 文本输入框点击激活
-        if self.input_rect.collidepoint(self.mouse_pos):
-            self.input_active = True
-        else:
-            self.input_active = False
 
     def handle_load_save_mouse_click(self):
         """加载存档屏幕鼠标点击"""
@@ -319,19 +279,46 @@ class Game:
 
         # 返回按钮
         if 650 <= self.mouse_pos[0] <= 750 and 500 <= self.mouse_pos[1] <= 550:
-            self.state = "menu"
+            self.state = "title"
 
     def handle_saves_list_mouse_click(self):
         """存档列表屏幕鼠标点击"""
-        # 返回按钮
-        if 650 <= self.mouse_pos[0] <= 750 and 500 <= self.mouse_pos[1] <= 550:
-            self.state = "menu"
+        # 如果有确认删除的存档
+        if self.delete_confirm:
+            # 确认删除按钮
+            confirm_rect = pygame.Rect(300, 350, 100, 50)
+            cancel_rect = pygame.Rect(450, 350, 100, 50)
 
-    def handle_leaderboard_mouse_click(self):
-        """排行榜屏幕鼠标点击"""
+            if confirm_rect.collidepoint(self.mouse_pos):
+                self.save_system.delete_save(self.delete_confirm)
+                print(f"已删除存档: {self.delete_confirm}")
+                self.delete_confirm = None
+                return
+            elif cancel_rect.collidepoint(self.mouse_pos):
+                self.delete_confirm = None
+                return
+
+        # 获取所有存档
+        all_saves = self.save_system.get_all_saves()
+
+        # 计算存档显示位置
+        y_pos = 220
+        for i, save in enumerate(all_saves):
+            if y_pos > 500:  # 限制显示数量
+                break
+
+            # 删除按钮位置（在存档信息右侧）
+            delete_rect = pygame.Rect(650, y_pos, 80, 30)
+            if delete_rect.collidepoint(self.mouse_pos):
+                # 设置确认删除的存档
+                self.delete_confirm = save["player_name"]
+                return
+
+            y_pos += 40
+
         # 返回按钮
         if 650 <= self.mouse_pos[0] <= 750 and 500 <= self.mouse_pos[1] <= 550:
-            self.state = "menu"
+            self.state = "title"
 
     def handle_menu_mouse_click(self):
         """主菜单鼠标点击"""
@@ -581,14 +568,10 @@ class Game:
         """绘制游戏画面"""
         if self.state == "title":
             self.draw_title_screen()
-        elif self.state == "create_save":
-            self.draw_create_save_screen()
         elif self.state == "load_save":
             self.draw_load_save_screen()
         elif self.state == "saves_list":
             self.draw_saves_list_screen()
-        elif self.state == "leaderboard":
-            self.draw_leaderboard_screen()
         elif self.state == "menu":
             self.draw_menu_screen()
         elif self.state == "shop":
@@ -653,45 +636,6 @@ class Game:
             control_text = self.small_font.render(text, True, (200, 200, 200))
             self.screen.blit(control_text, (400 - control_text.get_width() // 2, 530 + i * 25))
 
-    def draw_create_save_screen(self):
-        """绘制创建存档屏幕"""
-        # 绘制背景
-        self.screen.blit(self.menu_background, (0, 0))
-
-        # 绘制标题
-        title_text = self.font.render("新建存档", True, (255, 255, 200))
-        title_rect = title_text.get_rect(center=(400, 150))
-        self.screen.blit(title_text, title_rect)
-
-        # 绘制输入提示
-        prompt_text = self.medium_font.render(self.input_prompt, True, (255, 255, 255))
-        self.screen.blit(prompt_text, (400 - prompt_text.get_width() // 2, 280))
-
-        # 绘制输入框背景和边框
-        pygame.draw.rect(self.screen, (50, 50, 50), self.input_rect)  # 背景
-        pygame.draw.rect(self.screen, (255, 255, 255), self.input_rect, 2)  # 边框
-
-        # 绘制输入文本
-        input_display = self.input_text
-        if self.input_active:
-            # 光标闪烁效果：每500ms切换一次显示
-            if (pygame.time.get_ticks() // 500) % 2 == 0:
-                input_display += "|"
-
-        input_surface = self.input_font.render(input_display, True, (255, 255, 255))
-        self.screen.blit(input_surface, (self.input_rect.x + 10, self.input_rect.y + 5))
-
-        # 绘制操作说明
-        instructions = [
-            "输入玩家名字后按回车确认",
-            "点击输入框外退出输入模式",
-            "名字不能重复，最多20个字符"
-        ]
-
-        for i, text in enumerate(instructions):
-            instruction_text = self.small_font.render(text, True, (200, 200, 200))
-            self.screen.blit(instruction_text, (400 - instruction_text.get_width() // 2, 420 + i * 30))
-
     def draw_load_save_screen(self):
         """绘制加载存档屏幕"""
         # 绘制背景
@@ -749,6 +693,11 @@ class Game:
 
     def draw_saves_list_screen(self):
         """绘制存档列表屏幕"""
+        # 如果有确认删除的存档，绘制确认界面
+        if self.delete_confirm:
+            self.draw_delete_confirmation()
+            return
+
         # 绘制背景
         self.screen.blit(self.menu_background, (0, 0))
 
@@ -776,18 +725,41 @@ class Game:
             if y_pos > 500:  # 限制显示数量
                 break
 
+            # 存档信息
             save_info = f"{i + 1}. {save['player_name']} - 最高分: {save['high_score']} - 金币: {save['total_coins']}"
             if len(save_info) > 60:
                 save_info = save_info[:57] + "..."
             save_text = self.small_font.render(save_info, True, (220, 220, 220))
             self.screen.blit(save_text, (100, y_pos))
 
-            date_text = self.small_font.render(f"最后游戏: {save['last_played']}", True, (180, 180, 200))
-            self.screen.blit(date_text, (100, y_pos + 25))
+            # 绘制删除按钮
+            delete_rect = pygame.Rect(650, y_pos, 80, 30)
+            is_current = save["player_name"] == self.save_system.current_save[
+                "player_name"] if self.save_system.current_save else False
+            delete_hovered = delete_rect.collidepoint(self.mouse_pos)
 
-            y_pos += 60
+            if is_current:
+                # 当前存档的删除按钮为灰色
+                delete_color = (100, 100, 100)
+                delete_text_color = (150, 150, 150)
+            else:
+                delete_color = (200, 100, 100) if delete_hovered else (170, 70, 70)
+                delete_text_color = (255, 255, 255)
 
-        # 绘制返回按钮
+            pygame.draw.rect(self.screen, delete_color, delete_rect, border_radius=5)
+            pygame.draw.rect(self.screen, (255, 255, 255), delete_rect, 2, border_radius=5)
+
+            delete_text = pygame.font.Font('image/STKAITI.TTF', 20).render("删除", True, delete_text_color)
+            delete_text_rect = delete_text.get_rect(center=delete_rect.center)
+            self.screen.blit(delete_text, delete_text_rect)
+
+            y_pos += 40  # 减少行间距
+
+        # 绘制说明文字
+        instruction_text = self.small_font.render("点击删除按钮删除存档（当前存档不能删除）", True, (255, 200, 100))
+        self.screen.blit(instruction_text, (400 - instruction_text.get_width() // 2, 520))
+
+        # 绘制返回按钮 - 与事件检测位置保持一致 (650, 500, 100, 50)
         back_rect = pygame.Rect(650, 500, 100, 50)
         hovered = back_rect.collidepoint(self.mouse_pos)
         back_color = (200, 100, 100) if hovered else (170, 70, 70)
@@ -795,71 +767,45 @@ class Game:
         pygame.draw.rect(self.screen, (255, 255, 255), back_rect, 3, border_radius=10)
 
         back_text = self.small_font.render("返回", True, (255, 255, 255))
-        self.screen.blit(back_text, (700 - back_text.get_width() // 2, 525 - back_text.get_height() // 2))
+        back_text_rect = back_text.get_rect(center=back_rect.center)
+        self.screen.blit(back_text, back_text_rect)
 
-    def draw_leaderboard_screen(self):
-        """绘制排行榜屏幕"""
-        # 绘制背景
-        self.screen.blit(self.menu_background, (0, 0))
+    def draw_delete_confirmation(self):
+        """绘制删除确认界面"""
+        # 半透明背景
+        overlay = pygame.Surface((800, 600), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        self.screen.blit(overlay, (0, 0))
 
-        # 绘制标题
-        title_text = self.font.render("排行榜", True, (255, 255, 200))
-        title_rect = title_text.get_rect(center=(400, 80))
-        self.screen.blit(title_text, title_rect)
+        # 确认框
+        confirm_rect = pygame.Rect(200, 200, 400, 200)
+        pygame.draw.rect(self.screen, (50, 50, 80), confirm_rect, border_radius=10)
+        pygame.draw.rect(self.screen, (255, 255, 255), confirm_rect, 3, border_radius=10)
 
-        # 获取排行榜数据
-        score_leaderboard = self.save_system.get_leaderboard(10)
-        coins_leaderboard = self.save_system.get_coins_leaderboard(10)
+        # 确认文字
+        confirm_text = self.medium_font.render(f"确认删除存档: {self.delete_confirm}?", True, (255, 100, 100))
+        self.screen.blit(confirm_text, (400 - confirm_text.get_width() // 2, 250))
 
-        # 绘制最高分排行榜
-        score_title = self.medium_font.render("最高分排行榜", True, (255, 200, 100))
-        self.screen.blit(score_title, (150, 130))
+        warning_text = self.small_font.render("此操作不可恢复！", True, (255, 200, 100))
+        self.screen.blit(warning_text, (400 - warning_text.get_width() // 2, 290))
 
-        y_pos = 180
-        for i, save in enumerate(score_leaderboard):
-            rank_text = f"{i + 1}. {save['player_name']}: {save['high_score']}分"
-            if i == 0:
-                rank_color = (255, 215, 0)  # 金色
-            elif i == 1:
-                rank_color = (192, 192, 192)  # 银色
-            elif i == 2:
-                rank_color = (205, 127, 50)  # 铜色
-            else:
-                rank_color = (220, 220, 220)
+        # 确认按钮
+        confirm_btn = pygame.Rect(300, 350, 100, 50)
+        confirm_hovered = confirm_btn.collidepoint(self.mouse_pos)
+        confirm_color = (200, 50, 50) if confirm_hovered else (170, 30, 30)
+        pygame.draw.rect(self.screen, confirm_color, confirm_btn, border_radius=5)
+        pygame.draw.rect(self.screen, (255, 255, 255), confirm_btn, 2, border_radius=5)
+        confirm_text = self.small_font.render("确认", True, (255, 255, 255))
+        self.screen.blit(confirm_text, (350 - confirm_text.get_width() // 2, 375 - confirm_text.get_height() // 2))
 
-            rank_surface = self.small_font.render(rank_text, True, rank_color)
-            self.screen.blit(rank_surface, (150, y_pos))
-            y_pos += 30
-
-        # 绘制金币排行榜
-        coins_title = self.medium_font.render("金币排行榜", True, (255, 200, 100))
-        self.screen.blit(coins_title, (450, 130))
-
-        y_pos = 180
-        for i, save in enumerate(coins_leaderboard):
-            rank_text = f"{i + 1}. {save['player_name']}: {save['total_coins']}金币"
-            if i == 0:
-                rank_color = (255, 215, 0)  # 金色
-            elif i == 1:
-                rank_color = (192, 192, 192)  # 银色
-            elif i == 2:
-                rank_color = (205, 127, 50)  # 铜色
-            else:
-                rank_color = (220, 220, 220)
-
-            rank_surface = self.small_font.render(rank_text, True, rank_color)
-            self.screen.blit(rank_surface, (450, y_pos))
-            y_pos += 30
-
-        # 绘制返回按钮
-        back_rect = pygame.Rect(650, 500, 100, 50)
-        hovered = back_rect.collidepoint(self.mouse_pos)
-        back_color = (200, 100, 100) if hovered else (170, 70, 70)
-        pygame.draw.rect(self.screen, back_color, back_rect, border_radius=10)
-        pygame.draw.rect(self.screen, (255, 255, 255), back_rect, 3, border_radius=10)
-
-        back_text = self.small_font.render("返回", True, (255, 255, 255))
-        self.screen.blit(back_text, (700 - back_text.get_width() // 2, 525 - back_text.get_height() // 2))
+        # 取消按钮
+        cancel_btn = pygame.Rect(450, 350, 100, 50)
+        cancel_hovered = cancel_btn.collidepoint(self.mouse_pos)
+        cancel_color = (100, 100, 200) if cancel_hovered else (70, 70, 170)
+        pygame.draw.rect(self.screen, cancel_color, cancel_btn, border_radius=5)
+        pygame.draw.rect(self.screen, (255, 255, 255), cancel_btn, 2, border_radius=5)
+        cancel_text = self.small_font.render("取消", True, (255, 255, 255))
+        self.screen.blit(cancel_text, (500 - cancel_text.get_width() // 2, 375 - cancel_text.get_height() // 2))
 
     def draw_menu_screen(self):
         """绘制主菜单"""
@@ -1036,7 +982,6 @@ class Game:
                     desc_text = self.small_font.render(line, True, (255, 255, 200))
                     self.screen.blit(desc_text, (desc_rect.x + 20, desc_rect.y + 10 + j * 25))
 
-
         # 绘制按钮区域
         button_width = 150
         button_height = 60
@@ -1065,7 +1010,6 @@ class Game:
         start_text = self.medium_font.render("开始游戏", True, (255, 255, 255))
         start_text_rect = start_text.get_rect(center=start_rect.center)
         self.screen.blit(start_text, start_text_rect)
-
 
     def draw_game_screen(self):
         """绘制游戏画面"""
