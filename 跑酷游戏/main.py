@@ -18,7 +18,7 @@ class Game:
         """初始化游戏"""
         # 1. 创建窗口和时钟
         self.screen = pygame.display.set_mode((800, 600))
-        pygame.display.set_caption("跑酷游戏 - 商店系统版")
+        pygame.display.set_caption("跑酷游戏")
         self.clock = pygame.time.Clock()
 
         # 2. 游戏状态
@@ -42,8 +42,8 @@ class Game:
         self.selected_character = None  # 1或2，None表示未选择
         self.character_animation_folders = {1: 'gif', 2: 'gif'}
         self.character_abilities = {
-            1: {"can_double_jump": False, "name": "单段跳角色"},
-            2: {"can_double_jump": True, "name": "二段跳角色"}
+            1: {"can_double_jump": False, "name": "角色一"},
+            2: {"can_double_jump": True, "name": "角色二"}
         }
 
         # 6. 商店系统
@@ -107,47 +107,30 @@ class Game:
     # ==================== 资源加载方法 ====================
     def load_background(self):
         """加载游戏背景图片"""
-        try:
-            background_path = 'image/像素背景.png'
-            background = pygame.image.load(background_path).convert()
-            background = pygame.transform.scale(background, (800, 600))
-            print(f"成功加载游戏背景: {background_path}")
-            return background
-        except Exception as e:
-            print(f"加载游戏背景失败: {e}")
-            return pygame.Surface((800, 600), pygame.SRCALPHA)
+        background_path = 'image/像素背景.png'
+        background = pygame.image.load(background_path).convert()
+        background = pygame.transform.scale(background, (800, 600))
+        print(f"成功加载游戏背景: {background_path}")
+        return background
 
     def load_uibackground(self):
         """加载UI背景图片"""
-        try:
-            uibackground_path = 'image/背景.jpg'
-            uibackground = pygame.image.load(uibackground_path).convert()
-            uibackground = pygame.transform.scale(uibackground, (800, 600))
-            print(f"成功加载UI背景: {uibackground_path}")
-            return uibackground
-        except Exception as e:
-            print(f"加载UI背景失败: {e}")
-            return pygame.Surface((800, 600))
+        uibackground_path = 'image/背景.jpg'
+        uibackground = pygame.image.load(uibackground_path).convert()
+        uibackground = pygame.transform.scale(uibackground, (800, 600))
+        print(f"成功加载UI背景: {uibackground_path}")
+        return uibackground
 
     def load_shop_background(self):
         """加载商店背景图片"""
-        try:
-            background_path = 'image/shop.png'
-            background = pygame.image.load(background_path).convert()
-            background = pygame.transform.scale(background, (800, 600))
-            print(f"成功加载商店背景: {background_path}")
-            return background
-        except Exception as e:
-            print(f"加载商店背景失败，使用默认背景: {e}")
-            # 创建默认商店背景
-            background = pygame.Surface((800, 600))
-            background.fill((50, 30, 20))  # 深棕色背景
-            pygame.draw.rect(background, (139, 69, 19), (50, 100, 700, 400))  # 柜台
-            pygame.draw.rect(background, (160, 120, 90), (50, 100, 700, 400), 5)  # 柜台边框
-            return background
+        background_path = 'image/shop.png'
+        background = pygame.image.load(background_path).convert()
+        background = pygame.transform.scale(background, (800, 600))
+        print(f"成功加载商店背景: {background_path}")
+        return background
 
     def load_shop_images(self):
-        """加载商店物品图片"""
+        """加载商店物品图片（简化版）"""
         shop_images = {}
         item_images = {
             "extra_life": 'image/heart.png',
@@ -156,42 +139,11 @@ class Game:
         }
 
         for item_type, path in item_images.items():
-            try:
-                if os.path.exists(path):
-                    image = pygame.image.load(path).convert_alpha()
-                    image = pygame.transform.scale(image, (80, 80))
-                    shop_images[item_type] = image
-                else:
-                    # 创建默认图片
-                    default_img = pygame.Surface((80, 80), pygame.SRCALPHA)
-                    if item_type == "extra_life":
-                        # 心形
-                        pygame.draw.polygon(default_img, (255, 50, 50),
-                                            [(40, 20), (50, 10), (70, 20), (70, 50), (40, 80), (10, 50), (10, 20),
-                                             (30, 10)])
-                    elif item_type == "coin_double":
-                        # 金币
-                        pygame.draw.circle(default_img, (255, 215, 0), (40, 40), 35)
-                        pygame.draw.circle(default_img, (255, 255, 0), (40, 40), 35, 3)
-                        font = pygame.font.Font(None, 40)
-                        coin_text = font.render("2X", True, (255, 255, 200))
-                        text_rect = coin_text.get_rect(center=(40, 40))
-                        default_img.blit(coin_text, text_rect)
-                    elif item_type == "star_effect":
-                        # 星星
-                        points = [(40, 10), (48, 30), (70, 30), (52, 42),
-                                  (60, 65), (40, 50), (20, 65), (28, 42),
-                                  (10, 30), (32, 30)]
-                        pygame.draw.polygon(default_img, (255, 255, 0), points)
+            image = pygame.image.load(path).convert_alpha()
+            image = pygame.transform.scale(image, (80, 80))
+            shop_images[item_type] = image
+            print(f"成功加载商店图片: {path}")
 
-                    shop_images[item_type] = default_img
-                    print(f"为{item_type}创建了默认图片")
-            except Exception as e:
-                print(f"加载商店图片失败 {path}: {e}")
-                # 创建简单方块作为备用
-                default_img = pygame.Surface((80, 80), pygame.SRCALPHA)
-                pygame.draw.rect(default_img, (100, 100, 200), (0, 0, 80, 80))
-                shop_images[item_type] = default_img
 
         return shop_images
 
@@ -288,63 +240,14 @@ class Game:
         """处理键盘按下事件"""
         if self.state == "playing":
             self.handle_playing_keydown(event)
-        elif self.state == "game_over":
-            self.handle_game_over_keydown(event)
-        elif self.state == "menu":
-            self.handle_menu_keydown(event)
-        elif self.state == "title":
-            self.handle_title_keydown(event)
         elif self.state == "create_save" and self.input_active:
             self.handle_create_save_keydown(event)
-        elif self.state == "shop":
-            self.handle_shop_keydown(event)
 
     def handle_playing_keydown(self, event):
         """游戏中按键处理"""
         if event.key == pygame.K_SPACE:
             if self.player:
                 self.player.jump()
-        elif event.key == pygame.K_ESCAPE:
-            self.state = "menu"
-            self.reset_game()
-
-    def handle_game_over_keydown(self, event):
-        """游戏结束按键处理"""
-        if event.key == pygame.K_r:
-            self.start_game()
-        elif event.key == pygame.K_ESCAPE:
-            self.state = "menu"
-            self.reset_game()
-
-    def handle_menu_keydown(self, event):
-        """主菜单按键处理"""
-        if event.key == pygame.K_ESCAPE:
-            self.state = "title"
-        elif event.key == pygame.K_1:
-            self.selected_character = 1
-            self.state = "shop"
-        elif event.key == pygame.K_2:
-            self.selected_character = 2
-            self.state = "shop"
-        elif event.key == pygame.K_s:
-            self.state = "saves_list"
-        elif event.key == pygame.K_l:
-            self.state = "leaderboard"
-
-    def handle_title_keydown(self, event):
-        """标题屏幕按键处理"""
-        if event.key == pygame.K_ESCAPE:
-            self.running = False
-        elif event.key == pygame.K_1:
-            self.state = "load_save"
-        elif event.key == pygame.K_2:
-            self.state = "create_save"
-            self.input_active = True
-            self.input_text = ""
-        elif event.key == pygame.K_3:
-            self.state = "saves_list"
-        elif event.key == pygame.K_4:
-            self.state = "leaderboard"
 
     def handle_create_save_keydown(self, event):
         """创建存档按键处理"""
@@ -356,28 +259,12 @@ class Game:
             self.input_text = ""
         elif event.key == pygame.K_BACKSPACE:
             self.input_text = self.input_text[:-1]
-        elif event.key == pygame.K_ESCAPE:
-            self.state = "title"
         else:
             if len(self.input_text) < 20 and event.unicode.isprintable():
                 self.input_text += event.unicode
 
         display = self.input_text + ("|" if self.input_active else "")
         self.input_surface = self.input_font.render(display, True, (255, 255, 255))
-
-    def handle_shop_keydown(self, event):
-        """商店按键处理"""
-        if event.key == pygame.K_ESCAPE:
-            self.state = "menu"
-            self.purchased_items = []  # 退出商店时清空购买记录
-        elif event.key == pygame.K_1:
-            self.purchase_item(0)  # 购买第一个物品
-        elif event.key == pygame.K_2:
-            self.purchase_item(1)  # 购买第二个物品
-        elif event.key == pygame.K_3:
-            self.purchase_item(2)  # 购买第三个物品
-        elif event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
-            self.start_game()  # 开始游戏
 
     def handle_mouse_click(self):
         """处理鼠标点击"""
@@ -460,28 +347,39 @@ class Game:
 
     def handle_shop_mouse_click(self):
         """商店界面鼠标点击"""
-        # 物品点击
-        x_start = 200
+        # 重新计算物品位置（与draw_shop_screen保持一致）
         item_width = 150
         item_height = 200
         item_spacing = 50
+        total_width = 3 * item_width + 2 * item_spacing  # 三个物品总宽度
+        x_start = (800 - total_width) // 2  # 居中开始位置
+        y_pos = 200
 
+        # 物品点击
         for i in range(3):
-            item_rect = pygame.Rect(x_start + i * (item_width + item_spacing), 200, item_width, item_height)
+            x_pos = x_start + i * (item_width + item_spacing)
+            item_rect = pygame.Rect(x_pos, y_pos, item_width, item_height)
             if item_rect.collidepoint(self.mouse_pos):
                 self.purchase_item(i)
-                break
+                return  # 找到点击的物品后就返回，避免重复检测
 
-        # 开始游戏按钮
-        start_rect = pygame.Rect(300, 450, 200, 60)
+        # 按钮参数
+        button_width = 150
+        button_height = 60
+        button_y = 500
+
+        # 开始游戏按钮（右下角）
+        start_rect = pygame.Rect(800 - 50 - button_width, button_y, button_width, button_height)
         if start_rect.collidepoint(self.mouse_pos):
             self.start_game()
+            return
 
-        # 返回按钮
-        back_rect = pygame.Rect(50, 500, 100, 50)
+        # 返回按钮（左下角）
+        back_rect = pygame.Rect(50, button_y, button_width, button_height)
         if back_rect.collidepoint(self.mouse_pos):
             self.state = "menu"
             self.purchased_items = []
+            return
 
     # ==================== 商店系统方法 ====================
     def purchase_item(self, item_index):
@@ -748,11 +646,7 @@ class Game:
 
         # 绘制操作说明
         controls = [
-            "按1键: 加载存档",
-            "按2键: 新建存档",
-            "按3键: 查看存档列表",
-            "按4键: 查看排行榜",
-            "按ESC键: 退出游戏"
+            "使用鼠标点击按钮进行操作"
         ]
 
         for i, text in enumerate(controls):
@@ -790,7 +684,7 @@ class Game:
         # 绘制操作说明
         instructions = [
             "输入玩家名字后按回车确认",
-            "按ESC返回标题屏幕",
+            "点击输入框外退出输入模式",
             "名字不能重复，最多20个字符"
         ]
 
@@ -850,7 +744,7 @@ class Game:
         self.screen.blit(back_text, (700 - back_text.get_width() // 2, 525 - back_text.get_height() // 2))
 
         # 绘制操作说明
-        instruction_text = self.small_font.render("点击存档加载，按ESC返回菜单", True, (200, 200, 200))
+        instruction_text = self.small_font.render("点击存档加载，使用鼠标操作", True, (200, 200, 200))
         self.screen.blit(instruction_text, (400 - instruction_text.get_width() // 2, 560))
 
     def draw_saves_list_screen(self):
@@ -1008,8 +902,6 @@ class Game:
         self.screen.blit(char1_text, (300 - char1_text.get_width() // 2, 350))
         ability_text = self.small_font.render("单段跳", True, (200, 200, 255))
         self.screen.blit(ability_text, (300 - ability_text.get_width() // 2, 375))
-        key_text = self.small_font.render("按1键选择", True, (200, 255, 200))
-        self.screen.blit(key_text, (300 - key_text.get_width() // 2, 400))
 
         # 绘制角色2选择框
         char2_rect = pygame.Rect(450, 250, 100, 150)
@@ -1031,8 +923,6 @@ class Game:
         self.screen.blit(char2_text, (500 - char2_text.get_width() // 2, 350))
         ability_text = self.small_font.render("二段跳", True, (200, 200, 255))
         self.screen.blit(ability_text, (500 - ability_text.get_width() // 2, 375))
-        key_text = self.small_font.render("按2键选择", True, (200, 255, 200))
-        self.screen.blit(key_text, (500 - key_text.get_width() // 2, 400))
 
         # 绘制退出按钮
         quit_rect = pygame.Rect(300, 450, 200, 60)
@@ -1041,14 +931,13 @@ class Game:
         pygame.draw.rect(self.screen, quit_color, quit_rect, border_radius=10)
         pygame.draw.rect(self.screen, (255, 255, 255), quit_rect, 3, border_radius=10)
 
-        quit_text = self.medium_font.render("退出游戏", True, (255, 255, 255))
+        quit_text = self.medium_font.render("返回主页", True, (255, 255, 255))
         self.screen.blit(quit_text, (400 - quit_text.get_width() // 2, 480 - quit_text.get_height() // 2))
 
         # 绘制操作说明
         controls = [
             "点击角色图标选择角色进入商店",
-            "或按1键选择角色1，按2键选择角色2",
-            "游戏中: 空格键跳跃，ESC键返回菜单",
+            "游戏中: 空格键跳跃",
             "游戏结束后5秒自动返回菜单"
         ]
 
@@ -1064,30 +953,20 @@ class Game:
         # 绘制背景
         self.screen.blit(self.shop_background, (0, 0))
 
-        # 绘制标题
-        title_text = self.font.render("道 具 商 店", True, (255, 255, 200))
-        title_rect = title_text.get_rect(center=(400, 80))
-        self.screen.blit(title_text, title_rect)
-
         # 显示当前金币
         coins_text = self.medium_font.render(f"当前金币: {self.coins}", True, (255, 255, 100))
         self.screen.blit(coins_text, (400 - coins_text.get_width() // 2, 130))
 
-        # 显示当前角色
-        if self.selected_character:
-            char_name = self.character_abilities[self.selected_character]["name"]
-            char_text = self.small_font.render(f"当前角色: {char_name}", True, (200, 200, 255))
-            self.screen.blit(char_text, (400 - char_text.get_width() // 2, 160))
-
-        # 绘制物品
-        x_start = 200
+        # 绘制物品 - 居中排列
         item_width = 150
         item_height = 200
         item_spacing = 50
+        total_width = 3 * item_width + 2 * item_spacing  # 三个物品总宽度
+        x_start = (800 - total_width) // 2  # 居中开始位置
+        y_pos = 200
 
         for i, item in enumerate(self.shop_items):
             x_pos = x_start + i * (item_width + item_spacing)
-            y_pos = 200
 
             # 检查是否已购买
             purchased = False
@@ -1137,12 +1016,8 @@ class Game:
                 self.screen.blit(purchased_text,
                                  (x_pos + item_width // 2 - purchased_text.get_width() // 2, y_pos + 165))
 
-            # 显示快捷键
-            key_text = self.small_font.render(f"按 {i + 1} 键购买", True, (200, 255, 200))
-            self.screen.blit(key_text, (x_pos + item_width // 2 - key_text.get_width() // 2, y_pos + 185))
-
         # 绘制物品描述区域
-        desc_rect = pygame.Rect(100, 420, 600, 100)
+        desc_rect = pygame.Rect(100, 420, 600, 80)
         pygame.draw.rect(self.screen, (40, 40, 40, 200), desc_rect)
         pygame.draw.rect(self.screen, (255, 255, 255), desc_rect, 2)
 
@@ -1157,20 +1032,30 @@ class Game:
         if hovered_item:
             desc_lines = hovered_item["description"].split("，")
             for j, line in enumerate(desc_lines):
-                desc_text = self.small_font.render(line, True, (255, 255, 200))
-                self.screen.blit(desc_text, (desc_rect.x + 20, desc_rect.y + 10 + j * 25))
+                if j < 2:  # 限制显示行数
+                    desc_text = self.small_font.render(line, True, (255, 255, 200))
+                    self.screen.blit(desc_text, (desc_rect.x + 20, desc_rect.y + 10 + j * 25))
 
-        # 绘制已购买物品列表
-        if self.purchased_items:
-            purchased_text = self.medium_font.render("已购买物品:", True, (100, 255, 100))
-            self.screen.blit(purchased_text, (100, 520))
 
-            for i, item in enumerate(self.purchased_items):
-                item_text = self.small_font.render(f"✓ {item['name']}", True, (200, 255, 200))
-                self.screen.blit(item_text, (250 + i * 150, 520))
+        # 绘制按钮区域
+        button_width = 150
+        button_height = 60
+        button_y = 500
 
-        # 绘制开始游戏按钮
-        start_rect = pygame.Rect(300, 450, 200, 60)
+        # 绘制返回按钮（左下角）
+        back_rect = pygame.Rect(50, button_y, button_width, button_height)
+        back_hovered = back_rect.collidepoint(self.mouse_pos)
+        back_color = (200, 100, 100) if back_hovered else (170, 70, 70)
+
+        pygame.draw.rect(self.screen, back_color, back_rect, border_radius=10)
+        pygame.draw.rect(self.screen, (255, 255, 255), back_rect, 3, border_radius=10)
+
+        back_text = self.medium_font.render("返回", True, (255, 255, 255))
+        back_text_rect = back_text.get_rect(center=back_rect.center)
+        self.screen.blit(back_text, back_text_rect)
+
+        # 绘制开始游戏按钮（右下角）
+        start_rect = pygame.Rect(800 - 50 - button_width, button_y, button_width, button_height)
         start_hovered = start_rect.collidepoint(self.mouse_pos)
         start_color = (100, 200, 100) if start_hovered else (70, 170, 70)
 
@@ -1178,30 +1063,9 @@ class Game:
         pygame.draw.rect(self.screen, (255, 255, 255), start_rect, 3, border_radius=10)
 
         start_text = self.medium_font.render("开始游戏", True, (255, 255, 255))
-        self.screen.blit(start_text, (400 - start_text.get_width() // 2, 480 - start_text.get_height() // 2))
+        start_text_rect = start_text.get_rect(center=start_rect.center)
+        self.screen.blit(start_text, start_text_rect)
 
-        # 绘制返回按钮
-        back_rect = pygame.Rect(50, 500, 100, 50)
-        back_hovered = back_rect.collidepoint(self.mouse_pos)
-        back_color = (200, 100, 100) if back_hovered else (170, 70, 70)
-
-        pygame.draw.rect(self.screen, back_color, back_rect, border_radius=10)
-        pygame.draw.rect(self.screen, (255, 255, 255), back_rect, 3, border_radius=10)
-
-        back_text = self.small_font.render("返回", True, (255, 255, 255))
-        self.screen.blit(back_text, (100 - back_text.get_width() // 2, 525 - back_text.get_height() // 2))
-
-        # 绘制操作说明
-        instructions = [
-            "点击物品或按数字键1-3购买",
-            "按空格键或回车键开始游戏",
-            "按ESC键返回菜单",
-            "购买的商品只在本局游戏有效"
-        ]
-
-        for i, text in enumerate(instructions):
-            instr_text = self.small_font.render(text, True, (200, 200, 200))
-            self.screen.blit(instr_text, (400 - instr_text.get_width() // 2, 570 + i * 20))
 
     def draw_game_screen(self):
         """绘制游戏画面"""
@@ -1253,14 +1117,11 @@ class Game:
         score_text = self.font.render(f"最终分数: {int(self.score)}", True, (255, 255, 255))
         high_score_text = self.font.render(f"最高分: {high_score}", True, (255, 255, 100))
 
-        # 计算最终金币（考虑金币翻倍效果）
+        # 计算最终金币
         final_coins = self.current_game_coins
-        if self.coin_double_active:
-            final_coins *= 2
 
         coins_text = self.font.render(f"本局金币: {final_coins}", True, (255, 255, 100))
         restart_text = self.medium_font.render(f"自动返回菜单: {int(time_left)}秒", True, (100, 255, 100))
-        manual_text = self.small_font.render("按 R 键立即重玩，ESC 返回菜单", True, (200, 255, 200))
 
         # 居中显示
         self.screen.blit(game_over_text, (400 - game_over_text.get_width() // 2, 180))
@@ -1268,7 +1129,6 @@ class Game:
         self.screen.blit(high_score_text, (400 - high_score_text.get_width() // 2, 290))
         self.screen.blit(coins_text, (400 - coins_text.get_width() // 2, 340))
         self.screen.blit(restart_text, (400 - restart_text.get_width() // 2, 400))
-        self.screen.blit(manual_text, (400 - manual_text.get_width() // 2, 450))
 
     # ==================== 特效绘制方法 ====================
     def draw_coin_effect(self):
@@ -1314,22 +1174,12 @@ class Game:
         high_score_text = self.medium_font.render(f"最高分: {high_score}", True, (0, 0, 0))
         self.screen.blit(high_score_text, (10, 50))
 
-        # 绘制总金币
-        coins_text = self.ui_font.render(f"总金币: {self.coins}", True, (255, 255, 100))
-        self.screen.blit(coins_text, (250, 20))
-
-        # 绘制当前玩家信息
-        player_name = self.character_abilities[self.selected_character]["name"]
-        player_text = self.small_font.render(f"当前角色: {player_name}", True, (255, 0, 0))
-        self.screen.blit(player_text, (300, 10))
+        # 绘制本局金币
+        coins_text = self.ui_font.render(f"金币: {self.current_game_coins}", True, (255, 255, 100))
+        self.screen.blit(coins_text, (680, 20))
 
         # 显示当前激活的物品效果（增强版）
         effects_y = 80
-
-        # 绘制效果标题
-        effects_title = self.small_font.render("当前效果:", True, (200, 200, 200))
-        self.screen.blit(effects_title, (10, effects_y))
-        effects_y += 25
 
         # 效果列表，包含图标、文本和颜色
         effects = []
@@ -1358,16 +1208,6 @@ class Game:
                 # 绘制效果文本
                 effect_text = self.small_font.render(text, True, color)
                 self.screen.blit(effect_text, (10, effects_y + i * 28))
-
-        # 绘制控制说明
-        controls = [
-            "空格键: 跳跃",
-            "ESC键: 返回菜单"
-        ]
-
-        for i, text in enumerate(controls):
-            control_text = self.small_font.render(text, True, (0, 0, 0))
-            self.screen.blit(control_text, (600, 10 + i * 25))
 
 
 if __name__ == "__main__":
