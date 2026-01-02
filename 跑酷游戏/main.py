@@ -8,6 +8,8 @@ from player import Player
 from obstacle import ObstacleManager
 from coin import CoinManager
 from save_system import SaveSystem
+from enemy import EnemyManager
+
 
 # 初始化pygame
 pygame.init()
@@ -30,6 +32,7 @@ class Game:
         self.obstacle_manager = ObstacleManager()
         self.coin_manager = CoinManager(self.obstacle_manager)
         self.save_system = SaveSystem()
+        self.enemy_manager = EnemyManager()
 
         # 4. 游戏数据
         self.score = 0
@@ -177,13 +180,13 @@ class Game:
                              player_id=self.selected_character,
                              image_folder=animation_folder)
 
-        # 重置当前游戏数据
         self.score = 0
         self.current_game_coins = 0
         self.obstacle_manager.clear()
         self.coin_manager.clear()
+        self.enemy_manager.reset()
         self.stars = []  # 清空星星特效
-
+        
         # 进入游戏状态
         self.state = "playing"
 
@@ -191,11 +194,14 @@ class Game:
         """重置游戏"""
         if self.player:
             self.player.reset_position(100, 250)
+            self.player.health = 3
+            self.player.is_invincible = False
+            self.player.buff_timer = 0
 
         self.obstacle_manager.clear()
         self.coin_manager.clear()
+        self.enemy_manager.reset()
         self.stars = []
-
         # 重置当前游戏数据
         self.score = 0
         self.current_game_coins = 0
@@ -235,6 +241,9 @@ class Game:
         if event.key == pygame.K_SPACE:
             if self.player:
                 self.player.jump()
+        elif event.key == pygame.K_f:
+            if self.player:
+                self.enemy_manager.spawn_player_bullet(self.player.rect, self.player.attack_power)
 
     def handle_mouse_click(self):
         """处理鼠标点击"""
@@ -430,10 +439,10 @@ class Game:
         elif self.state == "shop":
             self.update_shop()
 
-    def update_playing(self):
-        """更新游戏进行状态"""
-        # 获取背景滚动速度
-        scroll_speed = 8
+    def update_playing(self):␊
+        """更新游戏进行状态"""␊
+        # 获取背景滚动速度␊
+        scroll_speed = 8␊
 
         # 更新背景滚动
         self.update_background()
@@ -447,6 +456,9 @@ class Game:
 
         # 更新金币
         self.coin_manager.update(scroll_speed)
+
+        # 更新敌人和子弹
+        player_hit = self.enemy_manager.update(scroll_speed, self.player.rect if self.player else None)
 
         # 检测金币收集
         if self.player:
@@ -471,27 +483,36 @@ class Game:
         self.score += 0.1
 
         # 检测碰撞
-        if self.player and self.obstacle_manager.check_collisions(self.player.rect):
-            if self.extra_life_active and not self.extra_life_used:
-                # 使用额外生命，清除碰撞的障碍物
-                self.extra_life_used = True
-                # 清除所有与玩家碰撞的障碍物
-                for obstacle in self.obstacle_manager.obstacles[:]:
-                    if obstacle.rect.colliderect(self.player.rect):
-                        obstacle.is_active = False
-            else:
-                self.state = "game_over"
-                self.game_over_time = time.time()
+        if self.player:
+            player_damaged = player_hit
+            if self.obstacle_manager.check_collisions(self.player.rect):
+                player_damaged = True
 
-                # 保存游戏记录到存档
-                if self.save_system.current_save:
-                    # 如果有金币翻倍效果，调整最终金币数
-                    final_coins = self.current_game_coins
-                    if self.coin_double_active:
-                        final_coins *= 2
+            if player_damaged and not self.player.is_invincible:
+                if self.extra_life_active and not self.extra_life_used:
+                    self.extra_life_used = True
+                    self.player.health = max(self.player.health, 1)
+                    for obstacle in self.obstacle_manager.obstacles[:]:
+                        if obstacle.rect.colliderect(self.player.rect):
+                            obstacle.is_active = False
+                else:
+                    self.player.health -= 1
+                    self.player.is_invincible = True
+                    self.player.buff_timer = 90
 
-                    self.save_system.update_save(self.score, final_coins, self.selected_character)
-                    self.update_game_data_from_save()
+                if self.player.health <= 0:
+                    self.state = "game_over"
+                    self.game_over_time = time.time()
+
+                    # 保存游戏记录到存档
+                    if self.save_system.current_save:
+                        # 如果有金币翻倍效果，调整最终金币数
+                        final_coins = self.current_game_coins
+                        if self.coin_double_active:
+                            final_coins *= 2
+
+                        self.save_system.update_save(self.score, final_coins, self.selected_character)
+                        self.update_game_data_from_save()
 
         # 更新星星特效
         if self.star_effect_active and self.player:
@@ -1023,10 +1044,12 @@ class Game:
         # 绘制金币
         self.coin_manager.draw(self.screen)
 
+        # 绘制敌人和战斗效果
+        self.enemy_manager.draw(self.screen)
+
         # 绘制玩家
         if self.player:
             self.player.draw(self.screen)
-
         # 绘制星星特效
         if self.star_effect_active:
             self.draw_star_effect()
@@ -1156,4 +1179,5 @@ class Game:
 
 if __name__ == "__main__":
     game = Game()
+
     game.run()
