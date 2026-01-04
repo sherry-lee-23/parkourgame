@@ -21,12 +21,18 @@ class Player:
         # 加载动画帧
         self.load_animation_frames(image_folder)
 
-
         # 物理属性
         self.velocity_y = 0
         self.on_ground = True
         self.jump_count = 0
         self.max_jump_count = 2 if can_double_jump else 1
+
+        # 战斗属性
+        self.attack_power = 25
+        self.health = 3
+        self.is_invincible = False
+        self.buff_timer = 0
+        self.speed_multiplier = 1.0
 
         # 玩家类型
         self.can_double_jump = can_double_jump
@@ -41,7 +47,6 @@ class Player:
         self.last_update_time = pygame.time.get_ticks()
 
         print(f"角色{player_id}加载完成，动画帧数: {len(self.animation_frames) if self.animation_frames else 0}")
-
     def load_animation_frames(self, folder_path):
         """加载动画帧"""
 
@@ -110,6 +115,15 @@ class Player:
             self.on_ground = True
             self.is_jumping = False
             self.jump_count = 0  # 重置跳跃次数
+
+        if self.buff_timer > 0:
+            self.buff_timer -= 1
+            if self.buff_timer <= 0:
+                self.is_invincible = False
+                self.speed_multiplier = 1.0
+
+        # 更新动画
+        self.update_animation()
 
         # 更新动画
         self.update_animation()

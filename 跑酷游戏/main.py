@@ -32,6 +32,7 @@ class Game:
         self.obstacle_manager = ObstacleManager()
         self.coin_manager = CoinManager(self.obstacle_manager)
         self.save_system = SaveSystem()
+        self.enemy_manager = EnemyManager()
 
         # 4. 游戏数据
         self.score = 0
@@ -63,12 +64,20 @@ class Game:
         self.star_effect_active = False
         self.stars = []  # 星星粒子效果列表
 
-        # 8. 背景系统
-        self.background = self.load_background()
+        # 8. 背景系统（修改为三层背景）
+        self.bg_layers = self.load_background_layers()  # 三层背景
+        # 每层背景的x坐标（初始位置）
+        self.bg1_x1, self.bg1_x2 = 0, 800  # 远层（最慢）
+        self.bg2_x1, self.bg2_x2 = 0, 800  # 中层（中速）
+        self.bg3_x1, self.bg3_x2 = 0, 800  # 近层（最快）
+        # 每层背景的移动速度（可自定义）
+        self.bg_speeds = {
+            "bg1": 2,  # 远层：最慢
+            "bg2": 5,  # 中层：中速
+            "bg3": 8  # 近层：最快（原速度）
+        }
         self.menu_background = self.load_uibackground()
         self.shop_background = self.load_shop_background()
-        self.bg_x1 = 0
-        self.bg_x2 = 800
 
         # 9. 字体系统
         self.font = pygame.font.Font('image/STKAITI.TTF', 48)
@@ -112,13 +121,36 @@ class Game:
         self.battle_assets = self.load_battle_assets()
 
     # ==================== 资源加载方法 ====================
-    def load_background(self):
-        """加载游戏背景图片"""
-        background_path = 'image/像素背景.png'
-        background = pygame.image.load(background_path).convert()
-        background = pygame.transform.scale(background, (800, 600))
-        print(f"成功加载游戏背景: {background_path}")
-        return background
+    def load_background_layers(self):
+        """加载三层游戏背景图片（远/中/近）"""
+        bg_layers = {}
+        # 三层背景路径
+        bg_paths = {
+            "bg1": 'image/像素背景_远层.png',  # 远层（最慢）
+            "bg2": 'image/像素背景_中层.png',  # 中层（中速）
+            "bg3": 'image/像素背景.png'  # 近层（最快，原背景）
+        }
+
+        for layer_name, path in bg_paths.items():
+            try:
+                # 区分 PNG（透明）和其他格式（非透明）
+                if path.lower().endswith('.png'):
+                    background = pygame.image.load(path).convert_alpha()  # 保留透明通道
+                else:
+                    background = pygame.image.load(path).convert()
+                background = pygame.transform.scale(background, (800, 600))
+                bg_layers[layer_name] = background
+                print(f"成功加载{layer_name}背景: {path}")
+            except Exception as e:
+                # 异常时也用 convert_alpha 加载默认背景（如果默认背景是PNG）
+                print(f"加载{layer_name}失败({e})，使用默认背景")
+                if '像素背景.png'.endswith('.png'):
+                    background = pygame.image.load('image/像素背景.png').convert_alpha()
+                else:
+                    background = pygame.image.load('image/像素背景.png').convert()
+                background = pygame.transform.scale(background, (800, 600))
+                bg_layers[layer_name] = background
+        return bg_layers
 
     def load_uibackground(self):
         """加载UI背景图片"""
@@ -207,11 +239,11 @@ class Game:
                              image_folder=animation_folder,
                              shoot_image_path=self.battle_assets.get("player_shoot"))
 
-        # 重置当前游戏数据
         self.score = 0
         self.current_game_coins = 0
         self.obstacle_manager.clear()
         self.coin_manager.clear()
+        self.enemy_manager.reset()
         self.stars = []  # 清空星星特效
         self.player_health = self.max_health
         self.completed_battles = set()
@@ -227,11 +259,14 @@ class Game:
         """重置游戏"""
         if self.player:
             self.player.reset_position(100, 250)
+            self.player.health = 3
+            self.player.is_invincible = False
+            self.player.buff_timer = 0
 
         self.obstacle_manager.clear()
         self.coin_manager.clear()
+        self.enemy_manager.reset()
         self.stars = []
-
         # 重置当前游戏数据
         self.score = 0
         self.current_game_coins = 0
@@ -275,6 +310,9 @@ class Game:
         if event.key == pygame.K_SPACE:
             if self.player:
                 self.player.jump()
+        elif event.key == pygame.K_f:
+            if self.player:
+                self.enemy_manager.spawn_player_bullet(self.player.rect, self.player.attack_power)
 
     def handle_mouse_click(self):
         """处理鼠标点击"""
@@ -490,6 +528,9 @@ class Game:
         # 更新金币
         self.coin_manager.update(scroll_speed)
 
+        # 更新敌人和子弹
+        player_hit = self.enemy_manager.update(scroll_speed, self.player.rect if self.player else None)
+
         # 检测金币收集
         if self.player:
             # 计算金币倍数
@@ -671,18 +712,30 @@ class Game:
         pass
 
     def update_background(self):
-        """更新背景滚动位置"""
-        scroll_speed = 8
+        """更新三层背景滚动位置（不同速度）"""
+        # 远层（最慢）
+        self.bg1_x1 -= self.bg_speeds["bg1"]
+        self.bg1_x2 -= self.bg_speeds["bg1"]
+        if self.bg1_x1 <= -800:
+            self.bg1_x1 = 800
+        if self.bg1_x2 <= -800:
+            self.bg1_x2 = 800
 
-        # 更新背景位置
-        self.bg_x1 -= scroll_speed
-        self.bg_x2 -= scroll_speed
+        # 中层（中速）
+        self.bg2_x1 -= self.bg_speeds["bg2"]
+        self.bg2_x2 -= self.bg_speeds["bg2"]
+        if self.bg2_x1 <= -800:
+            self.bg2_x1 = 800
+        if self.bg2_x2 <= -800:
+            self.bg2_x2 = 800
 
-        # 如果背景图片完全移出屏幕，重置到右侧
-        if self.bg_x1 <= -800:
-            self.bg_x1 = 800
-        if self.bg_x2 <= -800:
-            self.bg_x2 = 800
+        # 近层（最快）
+        self.bg3_x1 -= self.bg_speeds["bg3"]
+        self.bg3_x2 -= self.bg_speeds["bg3"]
+        if self.bg3_x1 <= -800:
+            self.bg3_x1 = 800
+        if self.bg3_x2 <= -800:
+            self.bg3_x2 = 800
 
     def update_star_effect(self):
         """更新星星特效"""
@@ -995,14 +1048,14 @@ class Game:
 
         # 绘制角色1图片
         try:
-            img = pygame.image.load('gif/Image_1765010414800_frame_1.png').convert_alpha()
+            img = pygame.image.load('gif/nick.png').convert_alpha()
             img = pygame.transform.scale(img, (80, 80))
             self.screen.blit(img, (260, 260))
         except:
             pass
 
         # 绘制角色1描述
-        char1_text = self.small_font.render("角色1", True, (255, 255, 255))
+        char1_text = self.small_font.render("尼克", True, (255, 255, 255))
         self.screen.blit(char1_text, (300 - char1_text.get_width() // 2, 350))
         ability_text = self.small_font.render("单段跳", True, (200, 200, 255))
         self.screen.blit(ability_text, (300 - ability_text.get_width() // 2, 375))
@@ -1016,14 +1069,14 @@ class Game:
 
         # 绘制角色2图片
         try:
-            img = pygame.image.load('gif/Image_1765010414800_frame_10.png').convert_alpha()
+            img = pygame.image.load('gif/judy.png').convert_alpha()
             img = pygame.transform.scale(img, (80, 80))
             self.screen.blit(img, (460, 260))
         except:
             pass
 
         # 绘制角色2描述
-        char2_text = self.small_font.render("角色2", True, (255, 255, 255))
+        char2_text = self.small_font.render("朱迪", True, (255, 255, 255))
         self.screen.blit(char2_text, (500 - char2_text.get_width() // 2, 350))
         ability_text = self.small_font.render("二段跳", True, (200, 200, 255))
         self.screen.blit(ability_text, (500 - ability_text.get_width() // 2, 375))
@@ -1190,10 +1243,12 @@ start_text = self.medium_font.render("开始游戏", True, (255, 255, 255))␊
         # 绘制金币
         self.coin_manager.draw(self.screen)
 
+        # 绘制敌人和战斗效果
+        self.enemy_manager.draw(self.screen)
+
         # 绘制玩家
         if self.player:
             self.player.draw(self.screen)
-
         # 绘制星星特效
         if self.star_effect_active:
             self.draw_star_effect()
