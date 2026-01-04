@@ -28,10 +28,10 @@ class Game:
         self.running = True
 
         # 3. 游戏核心对象
-        self.player = None␊
-        self.obstacle_manager = ObstacleManager()␊
-        self.coin_manager = CoinManager(self.obstacle_manager)␊
-        self.save_system = SaveSystem()␊
+        self.player = None
+        self.obstacle_manager = ObstacleManager()
+        self.coin_manager = CoinManager(self.obstacle_manager)
+        self.save_system = SaveSystem()
 
         # 4. 游戏数据
         self.score = 0
@@ -92,9 +92,9 @@ class Game:
 
         # 13. 帧率控制
         self.target_fps = 60
-        self.last_frame_time = 0␊
-        self.frame_count = 0␊
-        self.frame_timer = 0␊
+        self.last_frame_time = 0
+        self.frame_count = 0
+        self.frame_timer = 0
         # 14. 加载商店图片
         self.shop_images = self.load_shop_images()
 
@@ -137,13 +137,13 @@ class Game:
         return background
 
     def load_shop_images(self):␊
-        """加载商店物品图片（简化版）"""␊
-        shop_images = {}␊
-        item_images = {␊
-            "extra_life": 'image/heart.png',␊
-            "coin_double": 'image/coin.png',␊
-            "star_effect": 'image/star.png'␊
-        }␊
+        """加载商店物品图片（简化版）"""
+        shop_images = {}
+        item_images = {
+            "extra_life": 'image/heart.png',
+            "coin_double": 'image/coin.png',
+            "star_effect": 'image/star.png'
+        }
 
 
         for item_type, path in item_images.items():
@@ -266,10 +266,10 @@ class Game:
         # 更新鼠标位置
         self.mouse_pos = pygame.mouse.get_pos()
 
-   def handle_keydown(self, event):␊
-        """处理键盘按下事件"""␊
+   def handle_keydown(self, event):
+        """处理键盘按下事件"""
         if self.state in ("playing", "battle"):
-            self.handle_playing_keydown(event)␊
+            self.handle_playing_keydown(event)
     def handle_playing_keydown(self, event):
         """游戏中按键处理"""
         if event.key == pygame.K_SPACE:
@@ -1360,3 +1360,4 @@ if __name__ == "__main__":
     game = Game()
 
     game.run()
+
