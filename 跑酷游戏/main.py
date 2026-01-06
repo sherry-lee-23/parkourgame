@@ -565,9 +565,10 @@ class Game:
                 if self.extra_life_active and not self.extra_life_used:
                     self.extra_life_used = True
                 else:
-                    self.apply_damage(hits)
+                    self.apply_damage(1)
 
-        # 更新星星特效
+            if player_hit:
+                self.apply_damage(1)        # 更新星星特效
         if self.star_effect_active and self.player:
             self.update_star_effect()
 
@@ -634,7 +635,9 @@ class Game:
 
         # 检测玩家是否死亡
         if self.player_health <= 0:
-            self.running = False
+            self.state = "game_over"
+            self.game_over_time = time.time()
+
 
         # 检测怪物是否死亡
         if self.battle_monster and not self.battle_monster.alive:
@@ -698,8 +701,6 @@ class Game:
                 self.save_system.update_save(self.score, final_coins, self.selected_character)
                 self.update_game_data_from_save()
 
-            # 立即退出游戏循环
-            self.running = False
 
     def update_game_over(self):
         """更新游戏结束状态"""
@@ -1413,4 +1414,5 @@ if __name__ == "__main__":
     game = Game()
 
     game.run()
+
 
