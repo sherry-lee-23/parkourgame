@@ -587,7 +587,8 @@ class Game:
     def start_battle(self, threshold):
         """开启打怪状态"""
         self.state = "battle"
-        self.battle_monster = BattleMonster(600, 250,
+        ground_y = 400 - 80  # 与玩家同一地面高度
+        self.battle_monster = BattleMonster(600, ground_y,
                                             image=self.battle_assets.get("monster"),
                                             health=20)
         self.player_bullets.clear()
@@ -1226,6 +1227,8 @@ class Game:
 
     def draw_game_screen(self):
         """绘制游戏画面"""
+        # 先清屏，避免角色跳跃时的拖影
+        self.screen.fill((0, 0, 0))
         # 绘制背景␊
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x1, 0))  # 近层背景
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x2, 0))
@@ -1255,6 +1258,7 @@ class Game:
 
     def draw_battle_screen(self):
         """绘制战斗界面"""
+        self.screen.fill((0, 0, 0))
         # 背景保持静止
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x1, 0))
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x2, 0))
@@ -1348,15 +1352,15 @@ class Game:
             return
 
         # 绘制分数
-        score_text = self.medium_font.render(f"分数: {int(self.score)}", True, (0, 0, 0))
-        self.screen.blit(score_text, (10, 10))
+        score_text = self.medium_font.render(f"分数: {int(self.score)}", True, (0, 0, 0))␊
+        self.screen.blit(score_text, (20, 10))
 
         # 绘制最高分
         high_score = 0
         if self.save_system.current_save:
             high_score = self.save_system.current_save["high_score"]
-        high_score_text = self.medium_font.render(f"最高分: {high_score}", True, (0, 0, 0))
-        self.screen.blit(high_score_text, (10, 50))
+        high_score_text = self.medium_font.render(f"最高分: {high_score}", True, (0, 0, 0))␊
+        self.screen.blit(high_score_text, (20, 50))
 
         # 绘制生命值
         health_ratio = self.player_health / self.max_health if self.max_health else 0
@@ -1370,7 +1374,8 @@ class Game:
 
         # 绘制本局金币
         coins_text = self.ui_font.render(f"金币: {self.current_game_coins}", True, (255, 255, 100))
-        self.screen.blit(coins_text, (680, 20))
+        coins_rect = coins_text.get_rect(topright=(780, 20))
+        self.screen.blit(coins_text, coins_rect)
 
         # 显示当前激活的物品效果（增强版）
         effects_y = 80
@@ -1408,3 +1413,4 @@ if __name__ == "__main__":
     game = Game()
 
     game.run()
+
