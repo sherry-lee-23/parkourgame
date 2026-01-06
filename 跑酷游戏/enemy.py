@@ -201,7 +201,7 @@ class EnemyManager:
         base_dir = os.path.dirname(__file__)
         expected = {
             "sheep": os.path.join(base_dir, "assets", "sheep.png"),  # 绵羊图片路径（修正为实际位置）          
-
+        }
         for monster_type, path in expected.items():
             if os.path.exists(path):
                 loaded = pygame.image.load(path).convert_alpha()
