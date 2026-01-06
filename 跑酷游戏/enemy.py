@@ -197,9 +197,10 @@ class EnemyManager:
     def _load_monster_images(self) -> Dict[str, pygame.Surface]:
         """仅加载绵羊的图片"""
         images: Dict[str, pygame.Surface] = {}
-        # 仅保留绵羊的图片路径
+        # 仅保留绵羊的图片路径，优先使用仓库现有的贴图
+        base_dir = os.path.dirname(__file__)
         expected = {
-            "sheep": "assets/enemy/sheep.png",  # 绵羊图片路径
+            "sheep": os.path.join(base_dir, "跑酷游戏", "assets", "sheep.png"),  # 绵羊图片路径
         }
 
         for monster_type, path in expected.items():
@@ -221,6 +222,8 @@ class EnemyManager:
     def spawn_monster(self):
         """仅生成绵羊怪物"""
         monster_type = "sheep"  # 固定生成绵羊
+        if monster_type not in self.monster_images:
+            return  # 缺少贴图时不生成白块占位
         ground_y = 400 - 60     # 地面y坐标（和原来一致）
         new_monster = Monster(800, ground_y, monster_type, self.monster_images.get(monster_type))
         self.monsters.append(new_monster)
