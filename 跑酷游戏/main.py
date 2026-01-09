@@ -1114,7 +1114,7 @@ class Game:
 
         # 绘制角色1图片
         try:
-            img = pygame.image.load('gif/nick.png').convert_alpha()
+            img = pygame.image.load('image/nick.png').convert_alpha()
             img = pygame.transform.scale(img, (80, 80))
             self.screen.blit(img, (260, 260))
         except:
@@ -1135,7 +1135,7 @@ class Game:
 
         # 绘制角色2图片
         try:
-            img = pygame.image.load('gif/judy.png').convert_alpha()
+            img = pygame.image.load('image/judy.png').convert_alpha()
             img = pygame.transform.scale(img, (80, 80))
             self.screen.blit(img, (460, 260))
         except:
