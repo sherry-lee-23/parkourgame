@@ -190,7 +190,7 @@ class CoinManager:
             return False
 
         for ob in self.obstacle_manager.obstacles:
-            if spawn_x <= ob.rect.x <= spawn_x + 200:
+            if spawn_x <= ob.rect.x <= spawn_x + 260:
                 return True
         return False
 

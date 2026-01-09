@@ -12,6 +12,7 @@ class Player:
         self.static_frame = None    # 静态帧（动物封面）
         self.shoot_frame = None     # 射击动作帧
         self.shoot_timer = 0        # 射击计时器
+        self.force_shoot_pose = False
         
         # 加载静态图片
         self.load_static_image(player_id, image_folder)
@@ -272,7 +273,7 @@ class Player:
             return  # 闪烁时不绘制
             
         # 如果正在射击，绘制射击图片
-        if self.shoot_timer > 0 and self.shoot_frame:
+        if (self.force_shoot_pose or self.shoot_timer > 0) and self.shoot_frame:
             screen.blit(self.shoot_frame, self.rect)
         # 否则绘制静态动物图片
         elif self.static_frame:
@@ -284,5 +285,9 @@ class Player:
     def trigger_shooting_pose(self, duration=10):
         """在指定时间内切换到射击动作"""
         self.shoot_timer = max(self.shoot_timer, duration)
+
+    def set_force_shoot_pose(self, enabled=True):
+        """强制保持射击姿势"""
+        self.force_shoot_pose = enabled
 
 
