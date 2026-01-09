@@ -339,12 +339,7 @@ class Game:
             if self.player:
                 self.player.jump()
         elif event.key == pygame.K_f:
-            if self.state == "battle":
-                if self.player and self.player_shoot_cooldown <= 0:
-                    self.fire_player_bullet()
-                    self.player_shoot_cooldown = 12
-            elif self.player:
-                self.enemy_manager.spawn_player_bullet(self.player.rect, self.player.attack_power)
+            self.attempt_player_shoot()
 
     def handle_mouse_click(self):
         """处理鼠标点击"""
@@ -556,6 +551,14 @@ class Game:
         # 获取背景滚动速度
         scroll_speed = 8
 
+        # 玩家射击冷却
+        if self.player_shoot_cooldown > 0:
+            self.player_shoot_cooldown -= 1
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_f]:
+            self.attempt_player_shoot()
+
         # 更新背景滚动
         self.update_background()
 
@@ -662,6 +665,10 @@ class Game:
         if self.player_shoot_cooldown > 0:
             self.player_shoot_cooldown -= 1
 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_f]:
+            self.attempt_player_shoot()
+
         # 怪物攻击节奏
         if self.battle_monster:
             self.battle_monster.update()
@@ -708,6 +715,21 @@ class Game:
             image=self.battle_assets.get("monster_bullet")
         )
         self.monster_bullets.append(bullet)
+
+    def attempt_player_shoot(self):
+        """根据当前状态尝试发射玩家子弹"""
+        if not self.player or self.player_shoot_cooldown > 0:
+            return
+
+        if self.state == "battle":
+            self.fire_player_bullet()
+        elif self.state == "playing":
+            self.enemy_manager.spawn_player_bullet(self.player.rect, self.player.attack_power)
+            self.player.trigger_shooting_pose(10)
+        else:
+            return
+
+        self.player_shoot_cooldown = 12
 
     def update_bullets(self):
         """更新战斗子弹并处理碰撞"""
