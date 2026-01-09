@@ -1328,6 +1328,10 @@ class Game:
         """绘制战斗界面"""
         self.screen.fill((0, 0, 0))
         # 背景保持静止
+        self.screen.blit(self.bg_layers['bg1'], (self.bg1_x1, 0))
+        self.screen.blit(self.bg_layers['bg1'], (self.bg1_x2, 0))
+        self.screen.blit(self.bg_layers['bg2'], (self.bg2_x1, 0))
+        self.screen.blit(self.bg_layers['bg2'], (self.bg2_x2, 0))
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x1, 0))
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x2, 0))
 
@@ -1510,6 +1514,7 @@ if __name__ == "__main__":
     game = Game()
 
     game.run()
+
 
 
 
