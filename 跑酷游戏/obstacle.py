@@ -61,7 +61,7 @@ class ObstacleManager:
             # 只检测地面金币
             if coin.is_ground_coin:
                 # 如果金币还在前方一段距离内
-                if spawn_x - 120 < coin.rect.right:
+                if spawn_x - 220 < coin.rect.right:
                     return True
         return False
 

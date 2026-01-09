@@ -25,8 +25,9 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # 2. 游戏状态
-        self.state = "title"  # 可能的状态: title, menu, shop, playing, game_over, load_save, saves_list
+        self.state = "title"  # 可能的状态: title, menu, shop, playing, battle, paused, game_over, load_save, saves_list
         self.running = True
+        self.paused_state = None
 
         # 3. 游戏核心对象
         self.player = None
@@ -211,7 +212,9 @@ class Game:
 
         for key, path in paths.items():
             if os.path.exists(path):
-                assets[key] = pygame.image.load(path).convert_alpha()
+                loaded = pygame.image.load(path).convert_alpha()
+                target_size = placeholder_sizes[key]
+                assets[key] = pygame.transform.scale(loaded, target_size)
             else:
                 # 使用占位图，确保战斗元素始终可见
                 color = (255, 200, 80) if "bullet" in key else (200, 120, 120)
@@ -294,6 +297,8 @@ class Game:
         self.monster_bullets.clear()
         self.battle_monster = None
         self.completed_battles = set()
+        if self.player:
+            self.player.set_force_shoot_pose(False)
 
         # 重置物品效果
         self.extra_life_active = False
@@ -301,6 +306,7 @@ class Game:
         self.star_effect_active = False
         self.extra_life_used = False
         self.purchased_items = []
+        self.paused_state = None
 
     # ==================== 事件处理方法 ====================
     def handle_events(self):
@@ -322,6 +328,9 @@ class Game:
 
     def handle_keydown(self, event):
         """处理键盘按下事件"""
+        if event.key == pygame.K_p and self.state in ("playing", "battle", "paused"):
+            self.toggle_pause()
+            return
         if self.state in ("playing", "battle"):
             self.handle_playing_keydown(event)
     def handle_playing_keydown(self, event):
@@ -330,7 +339,11 @@ class Game:
             if self.player:
                 self.player.jump()
         elif event.key == pygame.K_f:
-            if self.player:
+            if self.state == "battle":
+                if self.player and self.player_shoot_cooldown <= 0:
+                    self.fire_player_bullet()
+                    self.player_shoot_cooldown = 12
+            elif self.player:
                 self.enemy_manager.spawn_player_bullet(self.player.rect, self.player.attack_power)
 
     def handle_mouse_click(self):
@@ -345,6 +358,13 @@ class Game:
             self.handle_menu_mouse_click()
         elif self.state == "shop":
             self.handle_shop_mouse_click()
+        elif self.state == "game_over":
+            self.handle_game_over_click()
+
+    def handle_game_over_click(self):
+        """游戏结束点击返回菜单"""
+        self.state = "menu"
+        self.reset_game()
 
     def handle_title_mouse_click(self):
         """标题屏幕鼠标点击"""
@@ -524,6 +544,8 @@ class Game:
             self.update_playing()
         elif self.state == "battle":
             self.update_battle()
+        elif self.state == "paused":
+            pass
         elif self.state == "game_over":
             self.update_game_over()
         elif self.state == "shop":
@@ -615,7 +637,7 @@ class Game:
         self.player_shoot_cooldown = 0
         self.current_battle_threshold = threshold
         if self.player:
-            self.player.trigger_shooting_pose(15)
+            self.player.set_force_shoot_pose(True)
 
     def end_battle(self, victory=True):
         """结束战斗并返回跑酷"""
@@ -627,6 +649,8 @@ class Game:
         self.battle_monster = None
         self.player_bullets.clear()
         self.monster_bullets.clear()
+        if self.player:
+            self.player.set_force_shoot_pose(False)
 
     def update_battle(self):
         """战斗状态更新"""
@@ -634,12 +658,9 @@ class Game:
         if self.player:
             self.player.update()
 
-        # 玩家自动射击
+        # 玩家射击冷却
         if self.player_shoot_cooldown > 0:
             self.player_shoot_cooldown -= 1
-        else:
-            self.fire_player_bullet()
-            self.player_shoot_cooldown = 12
 
         # 怪物攻击节奏
         if self.battle_monster:
@@ -809,6 +830,8 @@ class Game:
             self.draw_game_screen()
         elif self.state == "battle":
             self.draw_battle_screen()
+        elif self.state == "paused":
+            self.draw_pause_screen()
         elif self.state == "game_over":
             self.draw_game_over_screen()
 
@@ -1249,7 +1272,11 @@ class Game:
         # 先清屏，避免角色跳跃时的拖影
         self.screen.fill((0, 0, 0))
         # 绘制背景␊
-        self.screen.blit(self.bg_layers['bg3'], (self.bg3_x1, 0))  # 近层背景
+        self.screen.blit(self.bg_layers['bg1'], (self.bg1_x1, 0))
+        self.screen.blit(self.bg_layers['bg1'], (self.bg1_x2, 0))
+        self.screen.blit(self.bg_layers['bg2'], (self.bg2_x1, 0))
+        self.screen.blit(self.bg_layers['bg2'], (self.bg2_x2, 0))
+        self.screen.blit(self.bg_layers['bg3'], (self.bg3_x1, 0))
         self.screen.blit(self.bg_layers['bg3'], (self.bg3_x2, 0))
 
         # 绘制障碍物
@@ -1329,6 +1356,7 @@ class Game:
 
         coins_text = self.font.render(f"本局金币: {final_coins}", True, (255, 255, 100))
         restart_text = self.medium_font.render(f"自动返回菜单: {int(time_left)}秒", True, (100, 255, 100))
+        click_text = self.small_font.render("点击任意处返回主页面", True, (200, 200, 200))
 
         # 居中显示
         self.screen.blit(game_over_text, (400 - game_over_text.get_width() // 2, 180))
@@ -1336,6 +1364,34 @@ class Game:
         self.screen.blit(high_score_text, (400 - high_score_text.get_width() // 2, 290))
         self.screen.blit(coins_text, (400 - coins_text.get_width() // 2, 340))
         self.screen.blit(restart_text, (400 - restart_text.get_width() // 2, 400))
+        self.screen.blit(click_text, (400 - click_text.get_width() // 2, 440))
+
+    def draw_pause_screen(self):
+        """绘制暂停画面"""
+        if self.paused_state == "battle":
+            self.draw_battle_screen()
+        else:
+            self.draw_game_screen()
+
+        overlay = pygame.Surface((800, 600), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        pause_text = self.font.render("已暂停", True, (255, 255, 255))
+        hint_text = self.small_font.render("按 P 继续游戏", True, (200, 200, 200))
+        self.screen.blit(pause_text, (400 - pause_text.get_width() // 2, 240))
+        self.screen.blit(hint_text, (400 - hint_text.get_width() // 2, 320))
+
+    def toggle_pause(self):
+        """切换暂停状态"""
+        if self.state == "paused":
+            self.state = self.paused_state or "playing"
+            self.paused_state = None
+            return
+
+        if self.state in ("playing", "battle"):
+            self.paused_state = self.state
+            self.state = "paused"
 
     # ==================== 特效绘制方法 ====================
     def draw_coin_effect(self):
