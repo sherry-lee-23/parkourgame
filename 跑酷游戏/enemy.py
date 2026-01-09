@@ -122,8 +122,16 @@ class Monster:
 
 class Bullet:
     """子弹类（保留原有逻辑，无改动）"""
-    def __init__(self, x: int, y: int, direction: str = "right", damage: int = 20):
-        self.rect = pygame.Rect(x, y, 15, 5)
+    def __init__(self, x: int, y: int, direction: str = "right", damage: int = 20,
+                 image: Optional[pygame.Surface] = None):
+        self.image = image
+        if self.image:
+            if direction == "right":
+                self.rect = self.image.get_rect(midleft=(x, y))
+            else:
+                self.rect = self.image.get_rect(midright=(x, y))
+        else:
+            self.rect = pygame.Rect(x, y, 15, 5)
         self.speed = 10
         self.damage = damage
         self.direction = direction
@@ -139,8 +147,13 @@ class Bullet:
             self.is_active = False
 
     def draw(self, screen: pygame.Surface):
-        if self.is_active:
-            pygame.draw.rect(screen, (255, 255, 0), self.rect)
+        if not self.is_active:
+            return
+        if self.image:
+            screen.blit(self.image, self.rect)
+        else:
+            pygame.draw.rect(screen, (255, 240, 0), self.rect)
+            pygame.draw.rect(screen, (255, 255, 255), self.rect, 1)
 
 
 class Skill:
@@ -193,6 +206,7 @@ class EnemyManager:
         self.missing_assets: List[str] = []
 
         self.monster_images = self._load_monster_images()
+        self.bullet_image = self._load_bullet_image()
 
     def _load_monster_images(self) -> Dict[str, pygame.Surface]:
         """仅加载绵羊的图片"""
@@ -212,6 +226,15 @@ class EnemyManager:
 
         return images
 
+    def _load_bullet_image(self) -> Optional[pygame.Surface]:
+        base_dir = os.path.dirname(__file__)
+        bullet_path = os.path.join(base_dir, "image", "player_bullet.png")
+        if not os.path.exists(bullet_path):
+            self.missing_assets.append(bullet_path)
+            return None
+        loaded = pygame.image.load(bullet_path).convert_alpha()
+        return pygame.transform.scale(loaded, (20, 10))
+
     def reset(self):
         """重置怪物列表"""
         self.monsters.clear()
@@ -229,7 +252,13 @@ class EnemyManager:
 
     def spawn_player_bullet(self, player_rect: pygame.Rect, damage: int = 25):
         """生成玩家子弹（无改动）"""
-        bullet = Bullet(x=player_rect.right, y=player_rect.centery, direction="right", damage=damage)
+        bullet = Bullet(
+            x=player_rect.right,
+            y=player_rect.centery,
+            direction="right",
+            damage=damage,
+            image=self.bullet_image,
+        )
         self.player_bullets.append(bullet)
 
     def update(self, scroll_speed: int, player_rect: Optional[pygame.Rect]) -> bool:
@@ -278,6 +307,5 @@ class EnemyManager:
 
         for bullet in self.player_bullets:
             bullet.draw(screen)
-
 
 
